@@ -1541,8 +1541,7 @@ class TestOnlineAccount:
 
         lp.sec("ac2: receive system message about autodelete timer modification")
         ac2._evtracker.get_matching("DC_EVENT_CHAT_AUTODELETE_TIMER_MODIFIED")
-        incoming_message_event1 = ac2._evtracker.get_matching("DC_EVENT_INCOMING_MSG")
-        system_message1 = ac2.get_message_by_id(incoming_message_event1.data2)
+        system_message1 = ac2._evtracker.wait_next_incoming_message()
         assert chat2.get_autodelete_timer() == 60
         assert system_message1.is_system_message()
         assert "Autodelete timer: 60\n" in system_message1.get_message_info()
@@ -1556,8 +1555,7 @@ class TestOnlineAccount:
         assert "Expires: " in sent_message.get_message_info()
 
         lp.sec("ac1: waiting for message from ac2")
-        incoming_message_event2 = ac1._evtracker.get_matching("DC_EVENT_INCOMING_MSG")
-        text_message = ac1.get_message_by_id(incoming_message_event2.data2)
+        text_message = ac1._evtracker.wait_next_incoming_message()
         assert text_message.text == "message"
         assert text_message.is_encrypted()
         assert "Autodelete timer: 60\n" in text_message.get_message_info()
@@ -1572,8 +1570,7 @@ class TestOnlineAccount:
 
         lp.sec("ac1: receive system message about autodelete timer modification")
         ac1._evtracker.get_matching("DC_EVENT_CHAT_AUTODELETE_TIMER_MODIFIED")
-        incoming_message_event3 = ac1._evtracker.get_matching("DC_EVENT_INCOMING_MSG")
-        system_message2 = ac1.get_message_by_id(incoming_message_event3.data2)
+        system_message2 = ac1._evtracker.wait_next_incoming_message()
         assert "Autodelete timer: " not in system_message2.get_message_info()
         assert chat1.get_autodelete_timer() == 0
 
