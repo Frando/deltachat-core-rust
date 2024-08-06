@@ -483,6 +483,11 @@ async fn subscribe_loop(
 ) -> Result<()> {
     stream.joined().await?;
 
+    // Add initial neighbors.
+    for node in stream.neighbors() {
+        iroh_add_peer_for_topic(context, msg_id, topic, node, None).await?;
+    }
+
     // Try to notify that at least one peer joined,
     // but ignore the error if receiver is dropped and nobody listens.
     join_tx.send(()).ok();
@@ -501,8 +506,6 @@ async fn subscribe_loop(
                 }
                 GossipEvent::NeighborDown(_node) => {}
                 GossipEvent::Received(message) => {
-                    iroh_add_peer_for_topic(context, msg_id, topic, message.delivered_from, None)
-                        .await?;
                     info!(context, "IROH_REALTIME: Received realtime data");
                     context.emit_event(EventType::WebxdcRealtimeData {
                         msg_id,
