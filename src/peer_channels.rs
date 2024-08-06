@@ -481,16 +481,16 @@ async fn subscribe_loop(
     msg_id: MsgId,
     join_tx: oneshot::Sender<()>,
 ) -> Result<()> {
-    stream.joined().await?;
-
-    // Try to notify that at least one peer joined,
-    // but ignore the error if receiver is dropped and nobody listens.
-    join_tx.send(()).ok();
-
+    let mut join_tx = Some(join_tx);
     while let Some(event) = stream.try_next().await? {
         match event {
             Event::Gossip(event) => match event {
                 GossipEvent::Joined(nodes) => {
+                    // Try to notify that at least one peer joined,
+                    // but ignore the error if receiver is dropped and nobody listens.
+                    if let Some(join_tx) = join_tx.take() {
+                        join_tx.send(()).ok();
+                    }
                     for node in nodes {
                         iroh_add_peer_for_topic(context, msg_id, topic, node, None).await?;
                     }
@@ -501,8 +501,6 @@ async fn subscribe_loop(
                 }
                 GossipEvent::NeighborDown(_node) => {}
                 GossipEvent::Received(message) => {
-                    iroh_add_peer_for_topic(context, msg_id, topic, message.delivered_from, None)
-                        .await?;
                     info!(context, "IROH_REALTIME: Received realtime data");
                     context.emit_event(EventType::WebxdcRealtimeData {
                         msg_id,
