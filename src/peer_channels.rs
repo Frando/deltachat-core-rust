@@ -490,10 +490,16 @@ async fn subscribe_loop(
     while let Some(event) = stream.try_next().await? {
         match event {
             Event::Gossip(event) => match event {
+                GossipEvent::Joined(nodes) => {
+                    for node in nodes {
+                        iroh_add_peer_for_topic(context, msg_id, topic, node, None).await?;
+                    }
+                }
                 GossipEvent::NeighborUp(node) => {
                     info!(context, "IROH_REALTIME: NeighborUp: {}", node.to_string());
                     iroh_add_peer_for_topic(context, msg_id, topic, node, None).await?;
                 }
+                GossipEvent::NeighborDown(_node) => {}
                 GossipEvent::Received(message) => {
                     iroh_add_peer_for_topic(context, msg_id, topic, message.delivered_from, None)
                         .await?;
@@ -507,7 +513,6 @@ async fn subscribe_loop(
                             .into(),
                     });
                 }
-                _ => (),
             },
             Event::Lagged => {
                 warn!(context, "Gossip lost some messages");
